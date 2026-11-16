@@ -125,16 +125,31 @@ def process_all():
         coord_col_idx = header_name_to_idx.get('الاحداثيات', 16)
         muni_col_idx = header_name_to_idx.get('البلدية', 2)
         insp_col_idx = header_name_to_idx.get('اسم المراقب', 3)
+        status_col_idx = header_name_to_idx.get('حالة الزيارة', 15)
+
+        excluded_visit_statuses = {
+            'ملغاة',
+            'ملغاه',
+            'تم حذف الزيارة من قبل المراقب',
+            'تم الحذف من قبل المراقب',
+            'بانتظار التفتيش',
+        }
         
         seen_visits = set()
         dedup_records = []
         dup_count = 0
+        excluded_status_count = 0
         
         for r_cells in raw_rows:
             row_vals = []
             for c_idx in range(1, len(headers) + 1):
                 col_let = col_to_letter(c_idx)
                 row_vals.append(r_cells.get(col_let, ''))
+
+            visit_status = str(row_vals[status_col_idx]).strip() if status_col_idx < len(row_vals) else ''
+            if visit_status in excluded_visit_statuses:
+                excluded_status_count += 1
+                continue
                 
             vid = row_vals[visit_col_idx]
             if vid in seen_visits:
@@ -166,6 +181,7 @@ def process_all():
         print(f"تقرير المعالجة: {sector_name}")
         print(f"=======================================================")
         print(f"السجلات الأصلية: {len(raw_rows)}")
+        print(f"عدد الزيارات المستبعدة (ملغاة/حذف مراقب/بانتظار التفتيش): {excluded_status_count}")
         print(f"عدد الزيارات المكررة المحذوفة: {dup_count}")
         print(f"إجمالي الزيارات الفريدة بعد المعالجة: {total_visits}")
         print(f"إجمالي المراقبين: {total_inspectors}")
